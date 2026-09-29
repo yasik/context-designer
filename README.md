@@ -2,6 +2,8 @@
 
 Design the context your AI agent sees.
 
+[Open Context Designer](https://context.getagentlane.dev)
+
 Context Designer treats a context window like a memory map: divide it into named slots, group them into categories, and decide how much space each part deserves. Fill slots with real content to see how instructions, tool schemas, memory, and conversation history compete for the same token budget.
 
 ## What it's for
