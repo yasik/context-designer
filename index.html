@@ -548,7 +548,7 @@ a.btn {
 .btn-primary {
   border-color: transparent;
   color: var(--primary-foreground);
-  background: var(--foreground);
+  background: var(--primary);
   background-clip: padding-box;
 }
 
@@ -557,7 +557,7 @@ a.btn {
 }
 
 .btn-primary:not(:disabled):hover {
-  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background: color-mix(in srgb, var(--primary) 85%, var(--background));
   background-clip: padding-box;
 }
 
