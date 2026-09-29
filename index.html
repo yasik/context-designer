@@ -1,0 +1,1755 @@
+<!doctype html>
+<html lang="en" data-theme="ayu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Context Designer — Plan your agent context</title>
+<meta name="description" content="Design your AI agent context as a map of slots. Allocate token budgets, write prompt content, and see how it fits the context window.">
+<script>
+try {
+  if (localStorage.getItem('context-designer-theme') === 'light') document.documentElement.dataset.theme = 'light';
+} catch {}
+</script>
+<style>:root {
+  color-scheme: light dark;
+  background-color: var(
+    --background,
+    var(--color-background-primary, light-dark(rgb(255 255 255), rgb(24 24 24)))
+  ) !important;
+
+  --background: var(
+    --color-background-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --card: color-mix(in oklab, var(--foreground) 5%, var(--background));
+  --card-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --popover: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255), rgb(45 45 45))
+  );
+  --popover-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --primary: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --primary-foreground: var(
+    --color-text-inverse,
+    light-dark(rgb(255 255 255), rgb(13 13 13))
+  );
+  --secondary: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%))
+  );
+  --secondary-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: var(
+    --color-text-secondary,
+    light-dark(rgb(26 28 31 / 49.4%), rgb(255 255 255 / 49.8%))
+  );
+  --accent: var(
+    --color-background-info,
+    light-dark(rgb(229 242 255), rgb(13 39 63))
+  );
+  --accent-foreground: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --destructive: var(
+    --color-text-warning,
+    light-dark(rgb(226 85 7), rgb(255 133 73))
+  );
+  --border: var(
+    --color-border-secondary,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+  --input: var(
+    --color-border-primary,
+    light-dark(
+      rgb(26 28 31 / 11.8%),
+      color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+    )
+  );
+  --ring: var(
+    --color-ring-primary,
+    light-dark(rgb(51 156 255), rgb(131 195 255 / 76%))
+  );
+  --font-size-base: var(--font-text-md-size, 14px);
+  --blue: light-dark(rgb(51 156 255), rgb(51 156 255));
+  --orange: light-dark(rgb(226 85 7), rgb(251 106 34));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+  --red: light-dark(rgb(224 46 42), rgb(255 103 100));
+  --purple: light-dark(rgb(146 79 247), rgb(173 123 249));
+  --yellow: light-dark(rgb(255 195 0), rgb(255 210 64));
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
+  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
+  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
+  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
+  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, "Segoe UI", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --icon-size: 16px;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --corner-shape: round;
+  --radius: var(--border-radius-lg, 10px);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 17 17'%3E%3Cpath d='M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z'/%3E%3C/svg%3E");
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html > body {
+  /* Compatibility aliases for shared styles. */
+  --color-background-primary: var(
+    --background,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --color-text-primary: var(
+    --foreground,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --color-border-secondary: var(
+    --border,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+
+  margin: 0;
+  padding: var(--visualize-paint-gutter, 0px);
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+.cursor-interaction {
+  cursor: var(--cursor-interaction, pointer);
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: var(--cursor-interaction, pointer);
+  font-weight: var(--font-weight-medium, 500);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  corner-shape: var(--corner-shape);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table-responsive > .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead th {
+  padding-block: 8px;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 6px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align="right"]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align="center"]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  corner-shape: var(--corner-shape);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget > :not(.card, .progress) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+hr {
+  width: 100%;
+  height: 1px;
+  margin-block: 6px;
+  border: 0;
+  background: var(--border);
+}
+
+.nav {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.progress {
+  display: flex;
+  height: 8px;
+  margin-block: calc((var(--line-height-normal, 1.5em) - 8px) / 2);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+}
+
+.progress-bar:only-child {
+  border-radius: var(--radius-full);
+}
+
+.progress-bar {
+  height: 100%;
+  flex-shrink: 0;
+  border: 0;
+  background: var(--viz-series-1);
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls > .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls > .form-label > :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.nav-link,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn,
+.nav-link {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: var(--cursor-interaction, pointer);
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover,
+.nav-link:not(:disabled):not([aria-disabled="true"]):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.nav-pills .nav-link {
+  min-width: 0;
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.nav-justified .nav-link {
+  flex: 1 1 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.nav-pills .nav-link.active {
+  color: var(--foreground);
+  background: var(--muted);
+}
+
+.btn:disabled,
+.nav-link:disabled,
+.nav-link[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type="file"] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type="file"]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type="file"]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type="color"] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+  corner-shape: var(--corner-shape);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type="checkbox"] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  corner-shape: var(--corner-shape);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type="checkbox"]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type="checkbox"]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: "";
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type="radio"] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type="radio"]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: "";
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+  [aria-pressed="true"],
+  [aria-selected="true"],
+  .is-selected
+) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed="true"], [aria-selected="true"], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible,
+.nav-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .btn,
+  .nav-link,
+  .form-control,
+  .form-select {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Keep small-screen WebKit from zooming when a text field receives focus. */
+  .form-control,
+  .form-select {
+    font-size: max(16px, var(--font-size-normal));
+  }
+
+  .form-control[type="file"]::file-selector-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .form-control-color[type="color"] {
+    width: 44px;
+    height: 44px;
+  }
+
+  .form-control:is(
+    [type="date"],
+    [type="datetime-local"],
+    [type="month"],
+    [type="time"],
+    [type="week"]
+  ) {
+    min-width: 0;
+    max-width: 100%;
+    padding-block: 8px;
+  }
+
+  .form-check {
+    min-height: 44px;
+    padding-inline: 15px;
+  }
+
+  .form-check-input {
+    position: relative;
+  }
+
+  .form-check-input::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    content: "";
+    transform: translate(-50%, -50%);
+  }
+
+  .form-check-label {
+    display: inline-flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .form-range {
+    height: 44px;
+    touch-action: pan-y;
+  }
+
+  .form-range::-webkit-slider-runnable-track {
+    height: 44px;
+  }
+
+  .form-range::-moz-range-track {
+    height: 44px;
+  }
+
+  .form-range::-webkit-slider-thumb {
+    margin-top: 12px;
+  }
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget > svg {
+  width: 100%;
+}
+
+/* Model-authored chart rules can otherwise stretch icons after these styles load. */
+svg.lucide {
+  display: block;
+  width: var(--icon-size) !important;
+  height: var(--icon-size) !important;
+  flex: none;
+  margin: 0 !important;
+  stroke-width: 1.6;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+
+/* Ayu Dark: https://github.com/ayu-theme/ayu-colors/blob/master/themes/dark.yaml */
+:root[data-theme="ayu"] {
+  color-scheme: dark;
+  --background: #0d1017;
+  --foreground: #bfbdb6;
+  --card: #141821;
+  --card-foreground: #bfbdb6;
+  --popover: #0f131a;
+  --popover-foreground: #bfbdb6;
+  --primary: #e6b450;
+  --primary-foreground: #0d1017;
+  --secondary: #1b1f29;
+  --secondary-foreground: #bfbdb6;
+  --muted: #1b1f29;
+  --muted-foreground: #929aa8;
+  --accent: #302919;
+  --accent-foreground: #e6b450;
+  --destructive: #f07178;
+  --border: #303747;
+  --input: #303747;
+  --ring: #e6b450;
+  --blue: #59c2ff;
+  --orange: #ff8f40;
+  --green: #aad94c;
+  --red: #f07178;
+  --purple: #d2a6ff;
+  --yellow: #ffb454;
+  --viz-series-1: #e6b450;
+  --viz-series-2: #59c2ff;
+  --viz-series-3: #aad94c;
+  --viz-series-4: #f07178;
+  --viz-series-5: #d2a6ff;
+  --viz-series-6: #95e6cb;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: #f8f9fa;
+  --foreground: #5c6166;
+  --card: #ffffff;
+  --card-foreground: #5c6166;
+  --popover: #ffffff;
+  --popover-foreground: #5c6166;
+  --primary: #f29718;
+  --primary-foreground: #252a30;
+  --secondary: #ebeef0;
+  --secondary-foreground: #5c6166;
+  --muted: #ebeef0;
+  --muted-foreground: #606b78;
+  --accent: #fff0d9;
+  --accent-foreground: #875100;
+  --destructive: #bd3434;
+  --border: #cbd1d7;
+  --input: #cbd1d7;
+  --ring: #b56c00;
+  --blue: #22a4e6;
+  --orange: #fa8532;
+  --green: #86b300;
+  --red: #f07171;
+  --purple: #a37acc;
+  --yellow: #eba400;
+  --viz-series-1: #c77c00;
+  --viz-series-2: #1686bd;
+  --viz-series-3: #668a00;
+  --viz-series-4: #c94f55;
+  --viz-series-5: #9263bd;
+  --viz-series-6: #25896b;
+}
+.app-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.app-header h1 { margin: 0; }
+#theme-toggle { flex-shrink: 0; width: 40px; height: 40px; padding: 8px; }
+#theme-toggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+[data-theme="ayu"] .moon-icon, [data-theme="light"] .sun-icon { display: none; }
+
+/* Match the base stylesheet's specificity so the auto margins win. */
+html > body {
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+  padding: 40px 32px;
+  min-height: 100vh;
+}
+@media (max-width: 640px) {
+  html > body { padding: 24px 16px; }
+}
+</style>
+</head>
+<body>
+<div id="context-designer">
+  <style>
+    #context-designer .designer-layout { display:grid; grid-template-columns:minmax(0,0.9fr) minmax(0,1.1fr); gap:22px; align-items:start; margin-block:18px; }
+    #context-designer .sector { display:grid; grid-template-columns:38px 4px minmax(0,1fr); gap:6px; margin-block:9px; align-items:stretch; }
+    #context-designer .sector-address { align-self:center; white-space:nowrap; }
+    #context-designer .sector-mark { background:color-mix(in srgb,var(--sector-color) 55%,transparent); }
+    #context-designer .sector-label { overflow-wrap:anywhere; margin-bottom:4px; }
+    #context-designer .sector-caption { margin-top:3px; overflow-wrap:anywhere; }
+    #context-designer .category-heading { margin-top:16px; }
+    #context-designer .category-name { overflow-wrap:anywhere; }
+    #context-designer .editor-fields { display:grid; gap:12px; }
+    #context-designer .controls-gap { margin-block:12px; }
+    #context-designer .summary-line { display:flex; flex-wrap:wrap; gap:8px 20px; margin-block:12px; }
+    #context-designer .allocation-track { height:38px; display:flex; position:relative; background:color-mix(in srgb,var(--foreground) 5%,transparent); margin-block:8px; }
+    #context-designer .allocation-segment { min-width:0; height:100%; background:color-mix(in srgb,var(--segment-color) 16%,transparent); position:relative; }
+    #context-designer .content-fill { height:100%; background:color-mix(in srgb,var(--segment-color) 65%,transparent); }
+    #context-designer .over-budget-fill { position:absolute; top:0; height:100%; background:var(--destructive); opacity:0.65; }
+    #context-designer .capacity-marker { position:absolute; top:-4px; bottom:-4px; width:1px; background:var(--foreground); pointer-events:none; }
+    #context-designer .allocation-scale { display:flex; justify-content:space-between; gap:10px; }
+    #context-designer .legend { display:flex; flex-wrap:wrap; gap:8px 16px; margin-block:9px; }
+    #context-designer .legend-item { display:flex; gap:5px; align-items:center; overflow-wrap:anywhere; }
+    #context-designer .swatch { width:10px; height:10px; flex-shrink:0; background:var(--swatch-color); }
+    #context-designer .json-panel { margin-top:20px; }
+    #context-designer .empty { margin-block:10px; }
+    #context-designer .live-note { margin-block:8px; }
+    #context-designer [hidden] { display:none !important; }
+    @media(max-width:640px) { #context-designer .designer-layout { grid-template-columns:1fr; } }
+  </style>
+  <header class="app-header">
+    <h1>Context Designer</h1>
+    <button type="button" id="theme-toggle" class="btn btn-ghost" aria-label="Switch to light mode" data-tooltip="Switch to light mode">
+      <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+      <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z"/></svg>
+    </button>
+  </header>
+  <div class="viz-controls">
+    <label class="form-label">Design name<input id="design-name" class="form-control" value="My agent context"></label>
+    <label class="form-label">Tokenizer<select id="encoding" class="form-select"><option value="o200k_base">o200k_base</option><option value="cl100k_base">cl100k_base</option></select></label>
+  </div>
+  <div class="viz-controls controls-gap">
+    <label class="form-label">Context window · tokens<input id="context-window" class="form-control" type="number" min="1" step="1" value="128000"></label>
+    <label class="form-label">Output / overhead reserve · tokens<input id="output-reserve" class="form-control" type="number" min="0" step="1" value="8000"></label>
+  </div>
+  <div id="tokenizer-status" class="text-small live-note" role="status">Loading tokenizer…</div>
+  <button id="retry-tokenizer" type="button" class="btn" hidden>Retry tokenizer</button>
+  <div class="summary-line tabular-nums" aria-live="polite" id="totals"></div>
+  <div id="allocation-track" class="allocation-track" role="img" aria-label="Context allocation"></div>
+  <div class="allocation-scale text-small"><span>0 tokens</span><span id="allocation-end"></span></div>
+  <div id="allocation-legend" class="legend text-small"></div>
+  <div class="text-small text-muted">Filled = content · pale = unused slot budget · red = slot overrun. Footprint uses the larger of budget or content for each slot.</div>
+  <div id="budget-warning" class="text-small live-note" role="status"></div>
+  <div class="viz-row controls-gap">
+    <button type="button" class="btn" id="add-category">Add category</button>
+    <button type="button" class="btn btn-primary" id="add-slot">Add slot</button>
+    <button type="button" class="btn btn-ghost" id="undo" disabled>Undo change</button>
+  </div>
+  <div class="designer-layout">
+    <section aria-label="Context sectors"><div id="sector-map"></div></section>
+    <section aria-label="Selected sector editor">
+      <div id="slot-editor" class="card">
+        <h3 id="slot-heading">Edit slot</h3>
+        <div class="editor-fields">
+          <label class="form-label">Slot name<input id="slot-name" class="form-control"></label>
+          <label class="form-label">Category<select id="slot-category" class="form-select"></select></label>
+          <label class="form-label">Slot budget · tokens<input id="slot-budget" class="form-control" type="number" min="0" step="1"></label>
+          <div id="slot-metrics" class="text-small tabular-nums" aria-live="polite"></div>
+          <label class="form-label">Prompt content<textarea id="slot-content" class="form-control" rows="10" spellcheck="false" placeholder="Enter the actual instructions, tool schema, memory, or conversation text for this slot…"></textarea></label>
+          <div class="viz-row">
+            <button type="button" class="btn" id="fit-budget">Fit budget to text</button>
+            <button type="button" class="btn btn-ghost" id="duplicate-slot">Duplicate</button>
+          </div>
+          <div class="viz-row">
+            <button type="button" class="btn btn-ghost" id="slot-up">Move up</button>
+            <button type="button" class="btn btn-ghost" id="slot-down">Move down</button>
+            <button type="button" class="btn btn-ghost" id="delete-slot">Delete slot</button>
+          </div>
+        </div>
+      </div>
+      <div id="category-editor" class="card" hidden>
+        <h3>Edit category</h3>
+        <div class="editor-fields">
+          <label class="form-label">Category name<input id="category-name" class="form-control"></label>
+          <label class="form-label">Category color<select id="category-color" class="form-select"><option value="1">Palette 1</option><option value="2">Palette 2</option><option value="3">Palette 3</option><option value="4">Palette 4</option><option value="5">Palette 5</option><option value="6">Palette 6</option></select></label>
+          <div id="category-metrics" class="text-small tabular-nums"></div>
+          <div class="viz-row"><button type="button" class="btn" id="category-add-slot">Add slot here</button></div>
+          <div class="viz-row">
+            <button type="button" class="btn btn-ghost" id="category-up">Move up</button>
+            <button type="button" class="btn btn-ghost" id="category-down">Move down</button>
+            <button type="button" class="btn btn-ghost" id="delete-category">Delete category</button>
+          </div>
+          <div id="category-delete-note" class="text-small"></div>
+        </div>
+      </div>
+      <div id="no-selection" class="text-small empty" hidden>Add a category, then add slots to start allocating context.</div>
+    </section>
+  </div>
+  <div id="form-error" class="text-small text-destructive" role="alert"></div>
+  <div class="text-small text-muted">Counts sum each slot’s literal text with the selected encoding. Message framing, images and provider-specific overhead are excluded. Text is never truncated to fit a budget.</div>
+  <div id="save-status" class="text-small live-note" role="status">Empty starter template · illustrative budgets · no prompt content yet</div>
+  <details id="json-panel" class="json-panel">
+    <summary class="cursor-interaction">Export / import design</summary>
+    <div class="viz-row controls-gap">
+      <button type="button" class="btn" id="export-json">Prepare JSON</button>
+      <button type="button" class="btn" id="copy-json">Copy JSON</button>
+      <button type="button" class="btn" id="download-json" hidden>Download JSON</button>
+    </div>
+    <label class="form-label">Design JSON<textarea id="design-json" class="form-control" rows="7" spellcheck="false" placeholder="Prepare a complete backup, or paste an exported design here to import it."></textarea></label>
+    <div class="viz-row controls-gap"><button type="button" class="btn" id="import-json">Import JSON</button><span id="json-status" class="text-small" role="status"></span></div>
+  </details>
+  <div class="text-small source-row"><a href="https://github.com/niieani/gpt-tokenizer/tree/v3.4.0" target="_blank" rel="noreferrer">gpt-tokenizer 3.4.0</a> · local BPE counting after the tokenizer loads</div>
+</div>
+<script>
+(() => {
+  const root=document.getElementById('context-designer');
+  const $=id=>root.querySelector('#'+id);
+  const APP='context-taxonomy-designer-v1';
+  const LOCAL_KEY=APP+'-draft';
+  const encoder=new TextEncoder();
+  const fmt=n=>n.toLocaleString();
+  const clone=x=>JSON.parse(JSON.stringify(x));
+  const uid=()=>globalThis.crypto?.randomUUID?.() || 'id-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
+  const palette=n=>'var(--viz-series-'+n+')';
+  const starter={version:1,name:'My agent context',window:128000,reserve:8000,encoding:'o200k_base',categories:[
+    {id:'envelope',name:'Request envelope',color:1},
+    {id:'stable',name:'Stable system tier',color:2},
+    {id:'context',name:'Project context tier',color:3},
+    {id:'volatile',name:'Volatile system tier',color:4},
+    {id:'body',name:'Growing body',color:5}
+  ],slots:[
+    {id:'tools',categoryId:'envelope',name:'Tool schemas',budget:4000,content:''},
+    {id:'identity',categoryId:'stable',name:'Identity + behavior',budget:4000,content:''},
+    {id:'project',categoryId:'context',name:'Project instructions',budget:8000,content:''},
+    {id:'memory',categoryId:'volatile',name:'Memory + current state',budget:4000,content:''},
+    {id:'history',categoryId:'body',name:'Conversation history',budget:80000,content:''}
+  ],selection:{type:'slot',id:'identity'}};
+  let design=clone(starter),undoState=null,revision=0,saveTimer=null,countTimer=null,tokenizer=null,tokenizerName='',loadGeneration=0,dirty=false;
+  const counts=new Map(),loaders=new Map();
+  function validate(raw){
+    if(!raw || raw.version!==1) throw Error('Unsupported design version. Expected version 1.');
+    const string=(v,label)=>{if(typeof v!=='string') throw Error(label+' must be text.');return v;};
+    const integer=(v,min,label)=>{if(!Number.isSafeInteger(v)||v<min) throw Error(label+' must be a whole number of at least '+min+'.');return v;};
+    if(!Array.isArray(raw.categories)||!Array.isArray(raw.slots)) throw Error('The design must contain categories and slots arrays.');
+    if(!['o200k_base','cl100k_base'].includes(raw.encoding)) throw Error('Unsupported tokenizer encoding.');
+    const ids=new Set();
+    const categories=raw.categories.map(c=>{
+      const id=string(c.id,'Category ID');if(!id||ids.has(id))throw Error('Category IDs must be non-empty and unique.');ids.add(id);
+      const color=integer(c.color,1,'Category color');if(color>6)throw Error('Category color must be 1–6.');
+      return {id,name:string(c.name,'Category name'),color};
+    });
+    const slotIds=new Set();
+    const slots=raw.slots.map(s=>{
+      const id=string(s.id,'Slot ID');if(!id||slotIds.has(id))throw Error('Slot IDs must be non-empty and unique.');slotIds.add(id);
+      if(!ids.has(s.categoryId))throw Error('Every slot must reference an existing category.');
+      return {id,categoryId:s.categoryId,name:string(s.name,'Slot name'),budget:integer(s.budget,0,'Slot budget'),content:string(s.content,'Slot content')};
+    });
+    const selection=raw.selection && ((raw.selection.type==='slot'&&slotIds.has(raw.selection.id))||(raw.selection.type==='category'&&ids.has(raw.selection.id)))?{type:raw.selection.type,id:raw.selection.id}:slots[0]?{type:'slot',id:slots[0].id}:categories[0]?{type:'category',id:categories[0].id}:null;
+    const result={version:1,name:string(raw.name,'Design name'),window:integer(raw.window,1,'Context window'),reserve:integer(raw.reserve,0,'Reserve'),encoding:raw.encoding,categories,slots,selection};
+    if(!Number.isSafeInteger(slots.reduce((n,s)=>n+s.budget,result.reserve)))throw Error('Combined budgets exceed the supported numeric range.');
+    return result;
+  }
+  try {
+    const local=localStorage.getItem(LOCAL_KEY);
+    if(local){design=validate(JSON.parse(local));$('save-status').textContent='Restored saved design';}
+  } catch { $('save-status').textContent='Saved state could not be restored; the starter template is shown.'; }
+  function orderedSlots(){return design.categories.flatMap(c=>design.slots.filter(s=>s.categoryId===c.id));}
+  function selectedSlot(){return design.selection?.type==='slot'?design.slots.find(s=>s.id===design.selection.id):null;}
+  function selectedCategory(){const slot=selectedSlot();return design.categories.find(c=>c.id===(slot?slot.categoryId:design.selection?.id));}
+  function countFor(s){if(!s.content)return 0;const c=counts.get(s.id);return c?.text===s.content&&c.encoding===design.encoding?c.count:null;}
+  function totals(){
+    const values=design.slots.map(s=>({s,count:countFor(s)}));
+    const ready=values.every(v=>v.count!==null);
+    const used=values.reduce((a,v)=>a+(v.count??0),0);
+    const budget=values.reduce((a,v)=>a+v.s.budget,0);
+    const footprint=values.reduce((a,v)=>a+Math.max(v.s.budget,v.count??0),design.reserve);
+    return {ready,used,budget,footprint,free:design.window-footprint};
+  }
+  function setError(text=''){ $('form-error').textContent=text; }
+  function saveSoon(){
+    dirty=true;clearTimeout(saveTimer);saveTimer=setTimeout(save,450);
+    $('save-status').textContent='Unsaved changes…';
+  }
+  function save(){
+    try {
+      localStorage.setItem(LOCAL_KEY,JSON.stringify(design));
+      dirty=false;
+      $('save-status').textContent='Saved in this browser · export JSON for a portable backup';
+    } catch {
+      $('save-status').textContent='Autosave unavailable · export JSON to keep this draft';
+    }
+  }
+  function remember(){undoState=clone(design);$('undo').disabled=false;}
+  function changed({structure=false,count=false}={}){
+    revision++;setError();
+    if(structure){renderMap();renderEditor();}else renderMap();
+    renderTotals();renderEditorMetrics();saveSoon();if(count)scheduleCount();
+  }
+  function countNow(){
+    if(!tokenizer||tokenizerName!==design.encoding)return;
+    try{
+      for(const s of design.slots){if(countFor(s)===null)counts.set(s.id,{text:s.content,encoding:design.encoding,count:tokenizer.countTokens(s.content,{disallowedSpecial:new Set()})});}
+      $('tokenizer-status').textContent=design.encoding+' · exact literal-text token counts · gpt-tokenizer 3.4.0';
+      renderMap();renderTotals();renderEditorMetrics();
+    }catch(e){$('tokenizer-status').textContent='Token counting failed: '+e.message;renderTotals();}
+  }
+  function scheduleCount(){clearTimeout(countTimer);if(tokenizer&&tokenizerName===design.encoding){$('tokenizer-status').textContent='Counting text…';countTimer=setTimeout(countNow,140);}}
+  function loadLibrary(name){
+    if(loaders.has(name))return loaders.get(name);
+    const promise=new Promise((resolve,reject)=>{
+      const found=window['GPTTokenizer_'+name];if(found){resolve(found);return;}
+      const script=document.createElement('script');let done=false;
+      const fail=()=>{if(done)return;done=true;clearTimeout(timeout);script.remove();loaders.delete(name);reject(Error('Tokenizer could not load.'));};
+      const timeout=setTimeout(fail,25000);
+      script.src='https://cdn.jsdelivr.net/npm/gpt-tokenizer@3.4.0/dist/'+name+'.js';
+      script.onload=()=>{if(done)return;const api=window['GPTTokenizer_'+name];if(!api?.countTokens){fail();return;}done=true;clearTimeout(timeout);resolve(api);};
+      script.onerror=fail;document.head.append(script);
+    });loaders.set(name,promise);return promise;
+  }
+  async function activateTokenizer(){
+    const generation=++loadGeneration;const name=design.encoding;tokenizer=null;tokenizerName='';
+    $('retry-tokenizer').hidden=true;$('tokenizer-status').textContent='Loading '+name+' tokenizer…';renderTotals();renderMap();renderEditorMetrics();
+    try{const api=await loadLibrary(name);if(generation!==loadGeneration)return;tokenizer=api;tokenizerName=name;countNow();}
+    catch{if(generation!==loadGeneration)return;$('tokenizer-status').textContent='Tokenizer unavailable. Budgets remain editable; text counts are not estimated.';$('retry-tokenizer').hidden=false;}
+  }
+  function button(text,fn,cls='btn btn-ghost'){
+    const b=document.createElement('button');b.type='button';b.className=cls;b.textContent=text;b.addEventListener('click',fn);return b;
+  }
+  function choose(type,id){design.selection={type,id};revision++;renderMap();renderEditor();saveSoon();}
+  function renderMap(){
+    const host=$('sector-map');host.replaceChildren();let index=0;
+    for(const c of design.categories){
+      const group=document.createElement('section');
+      const header=document.createElement('div');header.className='category-heading';
+      const name=document.createElement('div');name.className='category-name';name.textContent=c.name||'Unnamed category';
+      const members=design.slots.filter(s=>s.categoryId===c.id);
+      const sub=document.createElement('div');sub.className='viz-row';
+      const edit=button('Edit category',()=>choose('category',c.id));edit.setAttribute('aria-label','Edit category '+(c.name||'unnamed'));edit.setAttribute('aria-pressed',String(design.selection?.type==='category'&&design.selection.id===c.id));
+      const sum=document.createElement('span');sum.className='text-small tabular-nums';sum.textContent=fmt(members.reduce((n,s)=>n+s.budget,0))+' tokens budgeted';
+      sub.append(edit,sum);header.append(name,sub);group.append(header);
+      for(const s of members){
+        const row=document.createElement('div');row.className='sector';row.dataset.slotId=s.id;
+        const address=document.createElement('code');address.className='sector-address text-small';address.textContent='S'+String(index++).padStart(2,'0');
+        const mark=document.createElement('div');mark.className='sector-mark';mark.style.setProperty('--sector-color',palette(c.color));mark.setAttribute('aria-hidden','true');
+        const cell=document.createElement('div');
+        const label=document.createElement('div');label.className='sector-label';label.textContent=s.name||'Unnamed slot';
+        const action=button('Edit content',()=>choose('slot',s.id),'btn btn-block');action.setAttribute('aria-label','Edit slot '+(s.name||'unnamed'));action.setAttribute('aria-pressed',String(design.selection?.type==='slot'&&design.selection.id===s.id));
+        const amount=countFor(s);const caption=document.createElement('div');caption.className='sector-caption text-small tabular-nums';caption.textContent=(amount===null?'…':fmt(amount))+' / '+fmt(s.budget)+' tokens';
+        if(amount!==null&&amount>s.budget){caption.classList.add('text-destructive');caption.textContent+=' · +'+fmt(amount-s.budget)+' over';}
+        cell.append(label,action,caption);row.append(address,mark,cell);group.append(row);
+      }
+      if(!members.length){const empty=document.createElement('div');empty.className='text-small empty';empty.textContent='No slots allocated';group.append(empty);}
+      host.append(group);
+    }
+    if(!design.categories.length)host.textContent='No categories yet.';
+    $('add-slot').disabled=!design.categories.length;
+  }
+  function renderTotals(){
+    const t=totals();$('totals').replaceChildren();
+    for(const label of [(t.ready?fmt(t.used):'…')+' text tokens',fmt(t.budget)+' budgeted',fmt(design.reserve)+' reserved',t.ready?(t.free>=0?fmt(t.free)+' unallocated':fmt(-t.free)+' over window'):'Counting footprint…']){const span=document.createElement('span');span.textContent=label;$('totals').append(span);}
+    const track=$('allocation-track');track.replaceChildren();
+    const extent=Math.max(design.window,t.footprint,1);let offset=0;
+    for(const s of orderedSlots()){
+      const used=countFor(s);const footprint=Math.max(s.budget,used??0);if(!footprint)continue;
+      const c=design.categories.find(c=>c.id===s.categoryId);const segment=document.createElement('div');segment.className='allocation-segment cursor-interaction';segment.style.width=(footprint/extent*100)+'%';segment.style.setProperty('--segment-color',palette(c.color));segment.dataset.chartSlot=s.id;
+      segment.setAttribute('data-tooltip',(s.name||'Unnamed slot')+' · '+(used===null?'pending':fmt(used))+' used / '+fmt(s.budget)+' budget');segment.addEventListener('click',()=>choose('slot',s.id));
+      const fill=document.createElement('div');fill.className='content-fill';fill.style.width=((used??0)/footprint*100)+'%';segment.append(fill);
+      if(used!==null&&used>s.budget){const over=document.createElement('div');over.className='over-budget-fill';over.style.left=(s.budget/footprint*100)+'%';over.style.width=((used-s.budget)/footprint*100)+'%';segment.append(over);}
+      track.append(segment);offset+=footprint;
+    }
+    if(design.reserve){const reserve=document.createElement('div');reserve.className='allocation-segment';reserve.style.width=(design.reserve/extent*100)+'%';reserve.style.setProperty('--segment-color','var(--foreground)');reserve.setAttribute('data-tooltip','Output / overhead reserve · '+fmt(design.reserve)+' tokens');track.append(reserve);}
+    if(t.footprint>design.window){const marker=document.createElement('div');marker.className='capacity-marker';marker.style.left=(design.window/extent*100)+'%';track.append(marker);}
+    track.setAttribute('aria-label',(t.ready?fmt(t.used)+' content tokens':'Token counting pending')+', '+fmt(t.budget)+' slot budget, '+fmt(design.reserve)+' output and overhead reserve, '+fmt(design.window)+' token window');
+    $('allocation-end').textContent=fmt(extent)+' tokens'+(extent>design.window?' · window ends at '+fmt(design.window):'');
+    const legend=$('allocation-legend');legend.replaceChildren();
+    for(const c of design.categories){const item=document.createElement('span');item.className='legend-item';const swatch=document.createElement('span');swatch.className='swatch';swatch.style.setProperty('--swatch-color',palette(c.color));const label=document.createElement('span');label.textContent=c.name||'Unnamed category';item.append(swatch,label);legend.append(item);}
+    const over=t.ready?design.slots.filter(s=>countFor(s)>s.budget).length:0;
+    $('budget-warning').textContent=t.footprint>design.window?'Footprint exceeds the window by '+fmt(t.footprint-design.window)+' tokens.':over?over+' slot'+(over===1?' is':'s are')+' over budget; the full text is still counted.':'';
+    $('budget-warning').classList.toggle('text-destructive',t.footprint>design.window||over>0);
+  }
+  function renderEditor(){
+    const s=selectedSlot(),c=selectedCategory();
+    $('slot-editor').hidden=!s;$('category-editor').hidden=!!s||!c;$('no-selection').hidden=!!s||!!c;
+    if(s){
+      $('slot-heading').textContent='Edit slot · S'+String(orderedSlots().findIndex(x=>x.id===s.id)).padStart(2,'0');
+      $('slot-name').value=s.name;$('slot-budget').value=s.budget;$('slot-content').value=s.content;
+      $('slot-category').replaceChildren(...design.categories.map(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name||'Unnamed category';return o;}));$('slot-category').value=s.categoryId;
+      const siblings=design.slots.filter(x=>x.categoryId===s.categoryId);const i=siblings.indexOf(s);$('slot-up').disabled=i===0;$('slot-down').disabled=i===siblings.length-1;
+    }else if(c){
+      $('category-name').value=c.name;$('category-color').value=c.color;
+      const i=design.categories.indexOf(c);$('category-up').disabled=i===0;$('category-down').disabled=i===design.categories.length-1;
+      const occupied=design.slots.some(s=>s.categoryId===c.id);$('delete-category').disabled=occupied;$('category-delete-note').textContent=occupied?'Move or delete its slots before deleting this category.':'';
+    }
+    renderEditorMetrics();
+  }
+  function renderEditorMetrics(){
+    const s=selectedSlot(),c=selectedCategory();
+    if(s){const n=countFor(s);$('slot-metrics').textContent=n===null?'Token count pending':fmt(n)+' text tokens · '+(n<=s.budget?fmt(s.budget-n)+' within budget':fmt(n-s.budget)+' over budget')+' · '+fmt(encoder.encode(s.content).length)+' UTF-8 bytes';$('slot-metrics').classList.toggle('text-destructive',n!==null&&n>s.budget);$('fit-budget').disabled=n===null;}
+    if(c){const slots=design.slots.filter(s=>s.categoryId===c.id);const ready=slots.every(s=>countFor(s)!==null);$('category-metrics').textContent=slots.length+' slots · '+(ready?fmt(slots.reduce((n,s)=>n+countFor(s),0)):'…')+' text tokens · '+fmt(slots.reduce((n,s)=>n+s.budget,0))+' budgeted';}
+  }
+  function renderAll(){
+    $('design-name').value=design.name;$('context-window').value=design.window;$('output-reserve').value=design.reserve;$('encoding').value=design.encoding;
+    renderMap();renderEditor();renderTotals();$('undo').disabled=!undoState;
+  }
+  function integerInput(input,min,apply){
+    const value=input.valueAsNumber;
+    if(!Number.isSafeInteger(value)||value<min){input.setAttribute('aria-invalid','true');setError('Enter a whole number of at least '+min+'. The previous valid allocation is retained.');return;}
+    input.removeAttribute('aria-invalid');remember();apply(value);changed();
+  }
+  function addSlot(){
+    const c=selectedCategory()||design.categories[0];if(!c)return;
+    remember();const s={id:uid(),categoryId:c.id,name:'New slot',budget:1000,content:''};design.slots.push(s);design.selection={type:'slot',id:s.id};changed({structure:true});$('slot-name').focus();$('slot-name').select();
+  }
+  $('add-slot').addEventListener('click',addSlot);$('category-add-slot').addEventListener('click',addSlot);
+  $('add-category').addEventListener('click',()=>{remember();const c={id:uid(),name:'New category',color:design.categories.length%6+1};design.categories.push(c);design.selection={type:'category',id:c.id};changed({structure:true});$('category-name').focus();$('category-name').select();});
+  $('design-name').addEventListener('input',()=>{design.name=$('design-name').value;changed();});
+  $('context-window').addEventListener('input',()=>integerInput($('context-window'),1,v=>design.window=v));
+  $('output-reserve').addEventListener('input',()=>integerInput($('output-reserve'),0,v=>design.reserve=v));
+  $('encoding').addEventListener('change',()=>{remember();design.encoding=$('encoding').value;changed();activateTokenizer();});
+  $('retry-tokenizer').addEventListener('click',activateTokenizer);
+  $('slot-name').addEventListener('input',()=>{const s=selectedSlot();if(s){s.name=$('slot-name').value;changed();}});
+  $('slot-budget').addEventListener('input',()=>integerInput($('slot-budget'),0,v=>{const s=selectedSlot();if(s)s.budget=v;}));
+  $('slot-content').addEventListener('input',()=>{const s=selectedSlot();if(s){s.content=$('slot-content').value;changed({count:true});}});
+  $('slot-category').addEventListener('change',()=>{const s=selectedSlot();if(s){remember();s.categoryId=$('slot-category').value;changed({structure:true});}});
+  $('fit-budget').addEventListener('click',()=>{const s=selectedSlot();if(!s)return;const n=countFor(s);if(n===null)return;remember();s.budget=n;changed({structure:true});});
+  $('duplicate-slot').addEventListener('click',()=>{const s=selectedSlot();if(!s)return;remember();const copy={...s,id:uid(),name:(s.name||'Slot')+' copy'};design.slots.splice(design.slots.indexOf(s)+1,0,copy);design.selection={type:'slot',id:copy.id};changed({structure:true,count:true});});
+  $('delete-slot').addEventListener('click',()=>{const s=selectedSlot();if(!s)return;remember();design.slots=design.slots.filter(x=>x.id!==s.id);counts.delete(s.id);design.selection={type:'category',id:s.categoryId};changed({structure:true});});
+  function moveSlot(delta){const s=selectedSlot();if(!s)return;const siblings=design.slots.filter(x=>x.categoryId===s.categoryId);const other=siblings[siblings.indexOf(s)+delta];if(!other)return;remember();const a=design.slots.indexOf(s),b=design.slots.indexOf(other);[design.slots[a],design.slots[b]]=[design.slots[b],design.slots[a]];changed({structure:true});}
+  $('slot-up').addEventListener('click',()=>moveSlot(-1));$('slot-down').addEventListener('click',()=>moveSlot(1));
+  $('category-name').addEventListener('input',()=>{const c=selectedCategory();if(c){c.name=$('category-name').value;changed();}});
+  $('category-color').addEventListener('change',()=>{const c=selectedCategory();if(c){remember();c.color=Number($('category-color').value);changed();}});
+  function moveCategory(delta){const c=selectedCategory();if(!c)return;const index=design.categories.indexOf(c);if(!design.categories[index+delta])return;remember();[design.categories[index],design.categories[index+delta]]=[design.categories[index+delta],design.categories[index]];changed({structure:true});}
+  $('category-up').addEventListener('click',()=>moveCategory(-1));$('category-down').addEventListener('click',()=>moveCategory(1));
+  $('delete-category').addEventListener('click',()=>{const c=selectedCategory();if(!c||design.slots.some(s=>s.categoryId===c.id))return;remember();design.categories=design.categories.filter(x=>x.id!==c.id);design.selection=design.categories[0]?{type:'category',id:design.categories[0].id}:null;changed({structure:true});});
+  $('undo').addEventListener('click',()=>{if(!undoState)return;const encoding=design.encoding;design=undoState;undoState=null;revision++;setError();root.querySelectorAll('[aria-invalid]').forEach(e=>e.removeAttribute('aria-invalid'));renderAll();saveSoon();if(encoding!==design.encoding)activateTokenizer();else scheduleCount();});
+  function exportJSON(){return JSON.stringify({format:APP,exportedAt:new Date().toISOString(),design},null,2);}
+  $('export-json').addEventListener('click',()=>{$('design-json').value=exportJSON();$('json-status').textContent='Complete design prepared, including all prompt text.';});
+  $('copy-json').addEventListener('click',async()=>{
+    const text=exportJSON();$('design-json').value=text;
+    try{await navigator.clipboard.writeText(text);$('json-status').textContent='Design copied.';}
+    catch{$('design-json').focus();$('design-json').select();$('json-status').textContent='JSON selected. Press ⌘C / Ctrl+C to copy.';}
+  });
+  $('download-json').addEventListener('click',()=>{const blob=new Blob([exportJSON()],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=(design.name.replace(/[^a-z0-9_-]+/gi,'-')||'context-design')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);});
+  $('import-json').addEventListener('click',()=>{
+    try{
+      const parsed=JSON.parse($('design-json').value);if(parsed.format&&parsed.format!==APP)throw Error('This is not a context taxonomy design.');
+      const next=validate(parsed.design??parsed);const encoding=design.encoding;remember();design=next;counts.clear();revision++;renderAll();setError();saveSoon();if(encoding!==next.encoding||!tokenizer)activateTokenizer();else countNow();$('json-status').textContent='Design imported. Undo restores the previous design.';
+    }catch(e){$('json-status').textContent='Import rejected: '+e.message;}
+  });
+  window.addEventListener('pagehide',()=>{if(dirty){try{localStorage.setItem(LOCAL_KEY,JSON.stringify(design));}catch{}}});
+  const themeToggle=$('theme-toggle');
+  function updateThemeToggle(){
+    const label=document.documentElement.dataset.theme==='light'?'Switch to dark mode':'Switch to light mode';
+    themeToggle.setAttribute('aria-label',label);
+    themeToggle.setAttribute('data-tooltip',label);
+  }
+  themeToggle.addEventListener('click',()=>{
+    const theme=document.documentElement.dataset.theme==='light'?'ayu':'light';
+    document.documentElement.dataset.theme=theme;
+    try { localStorage.setItem('context-designer-theme',theme); } catch {}
+    updateThemeToggle();
+  });
+  updateThemeToggle();
+  renderAll();activateTokenizer();
+})();
+</script>
+
+<script src="https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js"></script>
+<script src="https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js"></script>
+<script>
+(() => {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set(["top", "right", "bottom", "left"]);
+  const tooltipId = `context-designer-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+  let lastPointerWasTouch = false;
+  let pinnedByTouch = false;
+
+  const getTrigger = (target) =>
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest("[data-tooltip]")
+      : null;
+  const containsTarget = (trigger, target) =>
+    target?.nodeType != null && trigger.contains(target);
+  const getContent = (trigger) =>
+    trigger.getAttribute("data-tooltip")?.trim() ?? "";
+  const getPlacement = (trigger) => {
+    const placement = trigger.getAttribute("data-tooltip-placement");
+    return tooltipPlacements.has(placement) ? placement : "top";
+  };
+  const getTooltip = () => {
+    if (tooltip == null) {
+      tooltip = document.createElement("div");
+      tooltip.id = tooltipId;
+      tooltip.className = "tooltip";
+      tooltip.setAttribute("role", "tooltip");
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) => {
+    const ids = new Set(
+      (trigger.getAttribute("aria-describedby") ?? "")
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute("aria-describedby");
+    } else {
+      trigger.setAttribute("aria-describedby", [...ids].join(" "));
+    }
+  };
+  const clearOpenTimeout = () => {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) => {
+    clearOpenTimeout();
+    pinnedByTouch = false;
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) => {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              "--tooltip-available-width",
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              "--tooltip-available-height",
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: "fixed",
+    })
+      .then(({ x, y }) => {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = "visible";
+      })
+      .catch(() => {
+        if (activeTrigger === trigger && request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) => {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = "hidden";
+    floating.style.transform = "translate(0, 0)";
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () => {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) => {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() < skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() => {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) => {
+    if (event.pointerType === "touch") {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handlePointer = (event) => {
+    lastPointerWasTouch =
+      event.type === "pointerdown" && event.pointerType === "touch";
+  };
+  const handleTouchClick = (event) => {
+    const isTouch = event.pointerType === "touch" || lastPointerWasTouch;
+    lastPointerWasTouch = false;
+    if (!isTouch || event.detail === 0) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (
+      trigger == null ||
+      !trigger.isConnected ||
+      getContent(trigger).length === 0 ||
+      (pinnedByTouch && activeTrigger === trigger)
+    ) {
+      if (pinnedByTouch) {
+        closeTooltip();
+      }
+      return;
+    }
+    openTooltip(trigger);
+    pinnedByTouch = activeTrigger === trigger;
+    window.setTimeout(() => {
+      if (activeTrigger === trigger && !trigger.isConnected) {
+        closeTooltip(false);
+      }
+    }, 0);
+  };
+  const handleLeave = (event) => {
+    if (pinnedByTouch) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) => {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(":focus-visible")) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) => {
+    if (event.key === "Escape") {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) => {
+    lastPointerWasTouch = false;
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () => {
+    closeTooltip(false);
+    lastPointerWasTouch = false;
+    document.removeEventListener("pointerover", handlePointerOpen);
+    document.removeEventListener("pointerdown", handlePointer);
+    document.removeEventListener("pointercancel", handlePointer);
+    document.removeEventListener("click", handleTouchClick);
+    document.removeEventListener("pointerout", handleLeave);
+    document.removeEventListener("focusin", handleFocusIn);
+    document.removeEventListener("focusout", handleLeave);
+    document.removeEventListener("keydown", handleKeyDown);
+    document.removeEventListener("contextmenu", handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener("pointerover", handlePointerOpen);
+  document.addEventListener("pointerdown", handlePointer);
+  document.addEventListener("pointercancel", handlePointer);
+  document.addEventListener("click", handleTouchClick);
+  document.addEventListener("pointerout", handleLeave);
+  document.addEventListener("focusin", handleFocusIn);
+  document.addEventListener("focusout", handleLeave);
+  document.addEventListener("keydown", handleKeyDown);
+  document.addEventListener("contextmenu", handleContextMenu);
+  window.addEventListener("pagehide", destroy, { once: true });
+})();
+</script>
+
+</body>
+</html>
