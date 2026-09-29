@@ -1,0 +1,33 @@
+---
+import Hero from "../components/Hero.astro";
+import ContextDesigner from "../components/ContextDesigner.astro";
+import themeInit from "../scripts/theme-init.js?raw";
+import "../styles/app.css";
+---
+
+<!doctype html>
+<html lang="en" data-theme="ayu">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      name="description"
+      content="Design your AI agent context as a map of slots. Allocate token budgets, write prompt content, and see how it fits the context window."
+    />
+    <meta name="generator" content={Astro.generator} />
+    <title>Context Designer — Plan your agent context</title>
+    <script is:inline set:html={themeInit} />
+  </head>
+  <body>
+    <div id="context-designer">
+      <Hero />
+      <ContextDesigner />
+    </div>
+    <script>
+      import "../scripts/designer.js";
+      import "../scripts/theme.js";
+      import "../scripts/tooltips.js";
+    </script>
+  </body>
+</html>

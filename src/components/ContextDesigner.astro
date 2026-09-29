@@ -1,0 +1,231 @@
+<main aria-labelledby="workspace-title">
+  <div class="workspace-heading">
+    <h2 id="workspace-title">Your context map</h2>
+    <p>Define the window, then select a slot to shape its content.</p>
+  </div>
+
+  <div class="viz-controls">
+    <label class="form-label">
+      Design name
+      <input id="design-name" class="form-control" value="My agent context" />
+    </label>
+    <label class="form-label">
+      Tokenizer
+      <select id="encoding" class="form-select">
+        <option value="o200k_base">o200k_base</option>
+        <option value="cl100k_base">cl100k_base</option>
+      </select>
+    </label>
+  </div>
+  <div class="viz-controls controls-gap">
+    <label class="form-label">
+      Context window · tokens
+      <input
+        id="context-window"
+        class="form-control"
+        type="number"
+        min="1"
+        step="1"
+        value="128000"
+      />
+    </label>
+    <label class="form-label">
+      Output / overhead reserve · tokens
+      <input
+        id="output-reserve"
+        class="form-control"
+        type="number"
+        min="0"
+        step="1"
+        value="8000"
+      />
+    </label>
+  </div>
+  <div id="tokenizer-status" class="text-small live-note" role="status">
+    Loading tokenizer…
+  </div>
+  <button id="retry-tokenizer" type="button" class="btn" hidden>
+    Retry tokenizer
+  </button>
+  <div class="summary-line tabular-nums" aria-live="polite" id="totals"></div>
+  <div
+    id="allocation-track"
+    class="allocation-track"
+    role="img"
+    aria-label="Context allocation"
+  ></div>
+  <div class="allocation-scale text-small">
+    <span>0 tokens</span>
+    <span id="allocation-end"></span>
+  </div>
+  <div id="allocation-legend" class="legend text-small"></div>
+  <div class="text-small text-muted">
+    Filled = content · pale = unused slot budget · red = slot overrun. Footprint
+    uses the larger of budget or content for each slot.
+  </div>
+  <div id="budget-warning" class="text-small live-note" role="status"></div>
+  <div class="viz-row controls-gap">
+    <button type="button" class="btn" id="add-category">
+      Add category
+    </button>
+    <button type="button" class="btn btn-primary" id="add-slot">
+      Add slot
+    </button>
+    <button type="button" class="btn btn-ghost" id="undo" disabled>
+      Undo change
+    </button>
+  </div>
+  <div class="designer-layout">
+    <section aria-label="Context sectors">
+      <div id="sector-map"></div>
+    </section>
+    <section aria-label="Selected sector editor">
+      <div id="slot-editor" class="card">
+        <h3 id="slot-heading">Edit slot</h3>
+        <div class="editor-fields">
+          <label class="form-label">
+            Slot name
+            <input id="slot-name" class="form-control" />
+          </label>
+          <label class="form-label">
+            Category<select id="slot-category" class="form-select"></select>
+          </label>
+          <label class="form-label">
+            Slot budget · tokens
+            <input
+              id="slot-budget"
+              class="form-control"
+              type="number"
+              min="0"
+              step="1"
+            />
+          </label>
+          <div
+            id="slot-metrics"
+            class="text-small tabular-nums"
+            aria-live="polite"
+          ></div>
+          <label class="form-label">
+            Prompt content
+            <textarea
+              id="slot-content"
+              class="form-control"
+              rows="10"
+              spellcheck="false"
+              placeholder="Enter the actual instructions, tool schema, memory, or conversation text for this slot…"
+            ></textarea>
+          </label>
+          <div class="viz-row">
+            <button type="button" class="btn" id="fit-budget">
+              Fit budget to text
+            </button>
+            <button type="button" class="btn btn-ghost" id="duplicate-slot">
+              Duplicate
+            </button>
+          </div>
+          <div class="viz-row">
+            <button type="button" class="btn btn-ghost" id="slot-up">
+              Move up
+            </button>
+            <button type="button" class="btn btn-ghost" id="slot-down">
+              Move down
+            </button>
+            <button type="button" class="btn btn-ghost" id="delete-slot">
+              Delete slot
+            </button>
+          </div>
+        </div>
+      </div>
+      <div id="category-editor" class="card" hidden>
+        <h3>Edit category</h3>
+        <div class="editor-fields">
+          <label class="form-label">
+            Category name
+            <input id="category-name" class="form-control" />
+          </label>
+          <label class="form-label">
+            Category color
+            <select id="category-color" class="form-select">
+              <option value="1">Palette 1</option>
+              <option value="2">Palette 2</option>
+              <option value="3">Palette 3</option>
+              <option value="4">Palette 4</option>
+              <option value="5">Palette 5</option>
+              <option value="6">Palette 6</option>
+            </select>
+          </label>
+          <div id="category-metrics" class="text-small tabular-nums"></div>
+          <div class="viz-row">
+            <button type="button" class="btn" id="category-add-slot">
+              Add slot here
+            </button>
+          </div>
+          <div class="viz-row">
+            <button type="button" class="btn btn-ghost" id="category-up">
+              Move up
+            </button>
+            <button type="button" class="btn btn-ghost" id="category-down">
+              Move down
+            </button>
+            <button type="button" class="btn btn-ghost" id="delete-category">
+              Delete category
+            </button>
+          </div>
+          <div id="category-delete-note" class="text-small"></div>
+        </div>
+      </div>
+      <div id="no-selection" class="text-small empty" hidden>
+        Add a category, then add slots to start allocating context.
+      </div>
+    </section>
+  </div>
+  <div id="form-error" class="text-small text-destructive" role="alert"></div>
+  <div class="text-small text-muted">
+    Counts sum each slot’s literal text with the selected encoding. Message
+    framing, images and provider-specific overhead are excluded. Text is never
+    truncated to fit a budget.
+  </div>
+  <div id="save-status" class="text-small live-note" role="status">
+    Empty starter template · illustrative budgets · no prompt content yet
+  </div>
+  <details id="json-panel" class="json-panel">
+    <summary class="cursor-interaction">Export / import design</summary>
+    <div class="viz-row controls-gap">
+      <button type="button" class="btn" id="export-json">
+        Prepare JSON
+      </button>
+      <button type="button" class="btn" id="copy-json">
+        Copy JSON
+      </button>
+      <button type="button" class="btn" id="download-json" hidden>
+        Download JSON
+      </button>
+    </div>
+    <label class="form-label">
+      Design JSON
+      <textarea
+        id="design-json"
+        class="form-control"
+        rows="7"
+        spellcheck="false"
+        placeholder="Prepare a complete backup, or paste an exported design here to import it."
+      ></textarea>
+    </label>
+    <div class="viz-row controls-gap">
+      <button type="button" class="btn" id="import-json">
+        Import JSON
+      </button>
+      <span id="json-status" class="text-small" role="status"></span>
+    </div>
+  </details>
+  <div class="text-small source-row">
+    <a
+      href="https://github.com/niieani/gpt-tokenizer/tree/v3.4.0"
+      target="_blank"
+      rel="noreferrer"
+    >
+      gpt-tokenizer 3.4.0
+    </a>{" "}
+    · local BPE counting after the tokenizer loads
+  </div>
+</main>

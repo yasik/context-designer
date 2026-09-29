@@ -26,27 +26,49 @@ Use the sun or moon icon in the top-right corner to switch between Ayu dark and 
 
 ## Run locally
 
-Open `index.html` in a modern browser. No installation, build step, account, or API key is required.
-
-You can also serve the directory:
+Use Node.js 22.12 or newer and pnpm 10.29.3.
 
 ```sh
-python3 -m http.server 8000
+pnpm install
+pnpm dev
 ```
 
-Then open <http://localhost:8000>.
+Open <http://localhost:4321>. No account or API key is required.
+
+```sh
+pnpm check          # Check Astro components
+pnpm build          # Generate the static app in dist/
+pnpm preview        # Serve the production build locally
+pnpm exec playwright install chromium
+pnpm test           # Build and run browser regression tests
+pnpm format:check   # Check source formatting
+```
+
+## Project structure
+
+- `src/pages/index.astro` composes the page and loads client modules.
+- `src/components/` contains the hero and editor markup.
+- `src/styles/app.css` owns layout, controls, and the Ayu palettes.
+- `src/scripts/model.js` defines the design format and import validation.
+- `src/scripts/designer.js` handles editing, persistence, and user actions.
+- `src/scripts/view.js` renders the live slot map, allocation bar, and editor state.
+- `src/scripts/tokenizer.js`, `theme.js`, and `tooltips.js` handle their respective browser behaviors.
+
+Astro renders static HTML; the browser modules add interactivity without a UI framework. Dependencies are pinned through `pnpm-lock.yaml`.
 
 ## Storage and token counts
 
 Drafts and your theme preference are saved in this browser. Export JSON for a portable backup; changing browsers, moving from a local file to the hosted tool, or clearing browser storage does not transfer your draft.
 
-Prompt text is processed locally. The app has no backend or analytics. It downloads tokenizer and tooltip libraries from public CDNs, so the first load needs an internet connection.
+Prompt text is processed locally. The app has no backend or analytics. Tokenizer and tooltip dependencies are bundled with the app and served from the same origin. Tokenizer chunks load only when their encoding is selected.
 
 Token counts use [gpt-tokenizer](https://github.com/niieani/gpt-tokenizer) 3.4.0 with `o200k_base` or `cl100k_base`. They count each slot's literal text and sum the results. API message framing, image tokens, and provider-specific overhead are excluded; reserve space for them separately. A slot budget is a planning value, not a truncation limit.
 
 ## Deploy
 
-Deploy this directory as a static site. On Vercel, choose **Other** as the framework, leave the build command empty, and use the repository root as the output directory. The included `vercel.json` configures static hosting and response headers.
+Import this repository into Vercel as an **Astro** project. The included `vercel.json` installs dependencies with pnpm, runs `pnpm build`, and serves `dist/`. No server adapter or environment variables are required.
+
+For other static hosts, deploy the contents of `dist/` after building.
 
 ## License
 
