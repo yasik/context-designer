@@ -44,18 +44,6 @@ pnpm test           # Build and run browser regression tests
 pnpm format:check   # Check source formatting
 ```
 
-## Project structure
-
-- `src/pages/index.astro` composes the page and loads client modules.
-- `src/components/` contains the hero and editor markup.
-- `src/styles/app.css` owns layout, controls, and the Ayu palettes.
-- `src/scripts/model.js` defines the design format and import validation.
-- `src/scripts/designer.js` handles editing, persistence, and user actions.
-- `src/scripts/view.js` renders the live slot map, allocation bar, and editor state.
-- `src/scripts/tokenizer.js`, `theme.js`, and `tooltips.js` handle their respective browser behaviors.
-
-Astro renders static HTML; the browser modules add interactivity without a UI framework. Dependencies are pinned through `pnpm-lock.yaml`.
-
 ## Storage and token counts
 
 Drafts and your theme preference are saved in this browser. Export JSON for a portable backup; changing browsers, moving from a local file to the hosted tool, or clearing browser storage does not transfer your draft.
